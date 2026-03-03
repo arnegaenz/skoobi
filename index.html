@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>skoobi — The Collectibles Platform</title>
+  <meta name="description" content="Inventory, valuations, and a marketplace for serious collectors. Coming soon.">
+  <style>
+    :root {
+      --mint:   #00E5A0;
+      --cyan:   #00D4FF;
+      --purple: #8B5CF6;
+      --bg:     #08080F;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ─── BACKGROUND ORBS ─────────────────────── */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(110px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb-mint {
+      width: 700px; height: 700px;
+      background: var(--mint);
+      opacity: 0.07;
+      top: -260px; left: -210px;
+      animation: driftA 20s ease-in-out infinite;
+    }
+    .orb-purple {
+      width: 620px; height: 620px;
+      background: var(--purple);
+      opacity: 0.09;
+      bottom: -210px; right: -160px;
+      animation: driftB 24s ease-in-out infinite;
+    }
+    .orb-cyan {
+      width: 420px; height: 420px;
+      background: var(--cyan);
+      opacity: 0.04;
+      top: 50%; left: 55%;
+      animation: driftC 30s ease-in-out infinite;
+    }
+    @keyframes driftA {
+      0%, 100% { transform: translate(0, 0); }
+      50%       { transform: translate(45px, 35px); }
+    }
+    @keyframes driftB {
+      0%, 100% { transform: translate(0, 0); }
+      50%       { transform: translate(-35px, -45px); }
+    }
+    @keyframes driftC {
+      0%, 100% { transform: translate(-50%, -50%); }
+      33%       { transform: translate(calc(-50% + 25px), calc(-50% - 18px)); }
+      66%       { transform: translate(calc(-50% - 18px), calc(-50% + 25px)); }
+    }
+
+    /* ─── FLOATING COLLECTIBLES ───────────────── */
+    .collectible {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.1;
+    }
+    .c-book  { top: 7%;    left: 4%;   animation: flt1 7.0s ease-in-out infinite; }
+    .c-coin  { top: 9%;    right: 6%;  animation: flt2 8.5s ease-in-out infinite; }
+    .c-card  { top: 46%;   left: 2%;   animation: flt3 9.2s ease-in-out infinite; }
+    .c-vinyl { bottom: 9%; right: 5%;  animation: flt4 10.0s ease-in-out infinite; }
+    .c-gem   { bottom: 17%;left: 6%;   animation: flt5 7.8s ease-in-out infinite; }
+
+    @keyframes flt1 { 0%,100% { transform: translateY(0)    rotate(-5deg);  } 50% { transform: translateY(-18px) rotate(-2deg);   } }
+    @keyframes flt2 { 0%,100% { transform: translateY(0)    rotate(0deg);   } 50% { transform: translateY(-22px) rotate(180deg);  } }
+    @keyframes flt3 { 0%,100% { transform: translateY(0)    rotate(8deg);   } 50% { transform: translateY(-15px) rotate(12deg);   } }
+    @keyframes flt4 { 0%,100% { transform: translateY(0)    rotate(0deg);   } 50% { transform: translateY(-20px) rotate(-180deg); } }
+    @keyframes flt5 { 0%,100% { transform: translateY(0)    rotate(-10deg); } 50% { transform: translateY(-16px) rotate(-6deg);   } }
+
+    @media (max-width: 768px) { .collectible { display: none; } }
+
+    /* ─── MAIN CONTENT ────────────────────────── */
+    .container {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 3rem 1.5rem;
+      max-width: 680px;
+      width: 100%;
+      animation: fadeUp 0.9s ease-out forwards;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0);    }
+    }
+
+    /* Logo */
+    .logo-wrap { margin-bottom: 2.8rem; }
+    .wordmark {
+      font-size: clamp(3.8rem, 11vw, 6.5rem);
+      font-weight: 800;
+      letter-spacing: -4px;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--mint) 0%, var(--cyan) 45%, var(--purple) 100%);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 5s ease infinite;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 0%   50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0%   50%; }
+    }
+    .tagline {
+      font-size: 0.68rem;
+      font-weight: 400;
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.18);
+      margin-top: 10px;
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 20px;
+      border-radius: 100px;
+      border: 1px solid rgba(0,212,255,0.22);
+      color: rgba(0,212,255,0.65);
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 2.8rem;
+      animation: badgePulse 3s ease-in-out infinite;
+    }
+    .badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      animation: dotBlink 1.5s ease-in-out infinite;
+    }
+    @keyframes badgePulse {
+      0%,100% { border-color: rgba(0,212,255,0.22); box-shadow: none; }
+      50%      { border-color: rgba(0,212,255,0.48); box-shadow: 0 0 28px rgba(0,212,255,0.1); }
+    }
+    @keyframes dotBlink {
+      0%,100% { opacity: 1;   }
+      50%      { opacity: 0.2; }
+    }
+
+    /* Headline */
+    h1 {
+      font-size: clamp(1.9rem, 5vw, 2.9rem);
+      font-weight: 700;
+      color: rgba(255,255,255,0.92);
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+      margin-bottom: 1.1rem;
+    }
+    h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--mint), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .sub {
+      font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+      color: rgba(255,255,255,0.38);
+      font-weight: 400;
+      margin-bottom: 1.2rem;
+      line-height: 1.5;
+    }
+
+    .body-text {
+      font-size: 0.93rem;
+      color: rgba(255,255,255,0.25);
+      line-height: 1.75;
+      margin-bottom: 3rem;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Form card */
+    .card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 24px;
+      padding: 2.5rem 2rem;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .card-label {
+      display: block;
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+    .form-row {
+      display: flex;
+      gap: 10px;
+    }
+    input[type="email"] {
+      flex: 1;
+      min-width: 0;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 15px 18px;
+      color: rgba(255,255,255,0.9);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.25s, background 0.25s;
+    }
+    input[type="email"]::placeholder { color: rgba(255,255,255,0.17); }
+    input[type="email"]:focus {
+      border-color: rgba(0,212,255,0.35);
+      background: rgba(0,212,255,0.04);
+    }
+    button[type="submit"] {
+      background: linear-gradient(135deg, var(--mint), var(--cyan));
+      border: none;
+      border-radius: 14px;
+      padding: 15px 22px;
+      color: #06060E;
+      font-size: 0.875rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+    }
+    button[type="submit"]:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 28px rgba(0,229,160,0.25);
+    }
+    button[type="submit"]:active { transform: translateY(0); box-shadow: none; }
+
+    .disclaimer {
+      font-size: 0.67rem;
+      color: rgba(255,255,255,0.13);
+      margin-top: 1rem;
+      letter-spacing: 0.3px;
+    }
+    .success {
+      display: none;
+      padding: 1rem;
+      color: var(--mint);
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    @media (max-width: 500px) {
+      .form-row { flex-direction: column; }
+      .card     { padding: 1.8rem 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background -->
+  <div class="orb orb-mint"></div>
+  <div class="orb orb-purple"></div>
+  <div class="orb orb-cyan"></div>
+
+  <!-- Open Book -->
+  <div class="collectible c-book">
+    <svg viewBox="0 0 100 75" width="120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bookGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00E5A0"/><stop offset="100%" stop-color="#00D4FF"/>
+        </linearGradient>
+      </defs>
+      <path d="M 50,8 L 8,16 L 8,68 L 50,60 Z" stroke="url(#bookGrad)" stroke-width="1.5"/>
+      <path d="M 50,8 L 92,16 L 92,68 L 50,60 Z" stroke="url(#bookGrad)" stroke-width="1.5"/>
+      <line x1="50" y1="8"  x2="50" y2="60" stroke="url(#bookGrad)" stroke-width="2"/>
+      <line x1="14" y1="28" x2="44" y2="25" stroke="url(#bookGrad)" stroke-width="1" opacity="0.4"/>
+      <line x1="14" y1="36" x2="44" y2="33" stroke="url(#bookGrad)" stroke-width="1" opacity="0.4"/>
+      <line x1="14" y1="44" x2="44" y2="41" stroke="url(#bookGrad)" stroke-width="1" opacity="0.35"/>
+      <line x1="14" y1="52" x2="44" y2="49" stroke="url(#bookGrad)" stroke-width="1" opacity="0.25"/>
+      <line x1="56" y1="25" x2="86" y2="28" stroke="url(#bookGrad)" stroke-width="1" opacity="0.4"/>
+      <line x1="56" y1="33" x2="86" y2="36" stroke="url(#bookGrad)" stroke-width="1" opacity="0.4"/>
+      <line x1="56" y1="41" x2="86" y2="44" stroke="url(#bookGrad)" stroke-width="1" opacity="0.35"/>
+      <line x1="56" y1="49" x2="86" y2="52" stroke="url(#bookGrad)" stroke-width="1" opacity="0.25"/>
+    </svg>
+  </div>
+
+  <!-- Coin -->
+  <div class="collectible c-coin">
+    <svg viewBox="0 0 80 80" width="90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="coinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00D4FF"/><stop offset="100%" stop-color="#8B5CF6"/>
+        </linearGradient>
+      </defs>
+      <circle cx="40" cy="40" r="36" stroke="url(#coinGrad)" stroke-width="2"/>
+      <circle cx="40" cy="40" r="28" stroke="url(#coinGrad)" stroke-width="1" opacity="0.3"/>
+      <text x="40" y="48" text-anchor="middle" font-size="24" font-weight="800"
+        fill="url(#coinGrad)" opacity="0.65" font-family="system-ui, sans-serif">$</text>
+    </svg>
+  </div>
+
+  <!-- Trading Card -->
+  <div class="collectible c-card">
+    <svg viewBox="0 0 60 84" width="70" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00E5A0"/><stop offset="100%" stop-color="#8B5CF6"/>
+        </linearGradient>
+      </defs>
+      <rect x="2" y="2" width="56" height="80" rx="5" stroke="url(#cardGrad)" stroke-width="1.5"/>
+      <rect x="7" y="7" width="46" height="50" rx="3" stroke="url(#cardGrad)" stroke-width="1" opacity="0.3"/>
+      <path d="M30,14 L33,22 L42,22 L35,27 L38,35 L30,30 L22,35 L25,27 L18,22 L27,22 Z"
+        stroke="url(#cardGrad)" stroke-width="1" opacity="0.5"/>
+      <line x1="10" y1="63" x2="50" y2="63" stroke="url(#cardGrad)" stroke-width="1" opacity="0.28"/>
+      <line x1="10" y1="70" x2="44" y2="70" stroke="url(#cardGrad)" stroke-width="1" opacity="0.22"/>
+      <line x1="10" y1="77" x2="36" y2="77" stroke="url(#cardGrad)" stroke-width="1" opacity="0.16"/>
+    </svg>
+  </div>
+
+  <!-- Vinyl Record -->
+  <div class="collectible c-vinyl">
+    <svg viewBox="0 0 90 90" width="110" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="vinylGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#8B5CF6"/><stop offset="100%" stop-color="#00D4FF"/>
+        </linearGradient>
+      </defs>
+      <circle cx="45" cy="45" r="42" stroke="url(#vinylGrad)" stroke-width="2"/>
+      <circle cx="45" cy="45" r="34" stroke="url(#vinylGrad)" stroke-width="1" opacity="0.28"/>
+      <circle cx="45" cy="45" r="26" stroke="url(#vinylGrad)" stroke-width="1" opacity="0.22"/>
+      <circle cx="45" cy="45" r="18" stroke="url(#vinylGrad)" stroke-width="1" opacity="0.28"/>
+      <circle cx="45" cy="45" r="10" stroke="url(#vinylGrad)" stroke-width="1.5" opacity="0.45"/>
+      <circle cx="45" cy="45" r="4"  fill="url(#vinylGrad)" opacity="0.5"/>
+    </svg>
+  </div>
+
+  <!-- Gem / Diamond -->
+  <div class="collectible c-gem">
+    <svg viewBox="0 0 80 80" width="90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="gemGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00D4FF"/><stop offset="100%" stop-color="#8B5CF6"/>
+        </linearGradient>
+      </defs>
+      <path d="M40,5 L75,28 L60,74 L20,74 L5,28 Z" stroke="url(#gemGrad)" stroke-width="1.5"/>
+      <line x1="5"  y1="28" x2="75" y2="28" stroke="url(#gemGrad)" stroke-width="1" opacity="0.28"/>
+      <line x1="40" y1="5"  x2="5"  y2="28" stroke="url(#gemGrad)" stroke-width="1" opacity="0.18"/>
+      <line x1="40" y1="5"  x2="75" y2="28" stroke="url(#gemGrad)" stroke-width="1" opacity="0.18"/>
+      <line x1="40" y1="5"  x2="40" y2="74" stroke="url(#gemGrad)" stroke-width="1" opacity="0.14"/>
+      <line x1="5"  y1="28" x2="60" y2="74" stroke="url(#gemGrad)" stroke-width="1" opacity="0.14"/>
+      <line x1="75" y1="28" x2="20" y2="74" stroke="url(#gemGrad)" stroke-width="1" opacity="0.14"/>
+    </svg>
+  </div>
+
+  <!-- Main Content -->
+  <main class="container">
+
+    <div class="logo-wrap">
+      <div class="wordmark">skoobi</div>
+      <div class="tagline">collectibles platform</div>
+    </div>
+
+    <div class="badge">
+      <span class="badge-dot"></span>
+      Coming Soon
+    </div>
+
+    <h1>Do you know what your<br><em>collectibles</em> are worth?</h1>
+
+    <p class="sub">Are you tracking them anywhere???</p>
+
+    <p class="body-text">
+      skoobi is the platform serious collectors have been waiting for —
+      inventory management, real-time valuations, and a marketplace,
+      all in one place. Starting with books, built for everything.
+    </p>
+
+    <div class="card">
+      <span class="card-label">Get early access</span>
+      <!-- Sign up at formspree.io and replace YOUR_FORM_ID below -->
+      <form id="waitlistForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+        <div class="form-row">
+          <input type="email" name="email" placeholder="your@email.com" required autocomplete="email">
+          <button type="submit">Join the Waitlist</button>
+        </div>
+        <p class="disclaimer">No spam. Just a heads up when we launch.</p>
+      </form>
+      <div class="success" id="successMsg">
+        ✓ You're on the list — we'll be in touch!
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const form    = document.getElementById('waitlistForm');
+    const success = document.getElementById('successMsg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = form.querySelector('button');
+      btn.textContent = 'Joining...';
+      btn.style.opacity = '0.7';
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { 'Accept': 'application/json' }
+        });
+        if (res.ok) {
+          form.style.display  = 'none';
+          success.style.display = 'block';
+        } else {
+          btn.textContent  = 'Join the Waitlist';
+          btn.style.opacity = '1';
+        }
+      } catch {
+        form.style.display  = 'none';
+        success.style.display = 'block';
+      }
+    });
+  </script>
+
+</body>
+</html>
