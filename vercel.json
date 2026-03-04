@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/process-emails?token=${CRON_SECRET}",
-      "schedule": "0 * * * *"
+      "schedule": "0 12 * * *"
     },
     {
       "path": "/api/daily-summary?token=${CRON_SECRET}",
