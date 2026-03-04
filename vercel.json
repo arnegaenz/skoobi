@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/process-emails?token=${CRON_SECRET}",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/daily-summary?token=${CRON_SECRET}",
+      "schedule": "0 13 * * *"
+    }
+  ],
+  "functions": {
+    "api/process-emails.js": {
+      "maxDuration": 60
+    },
+    "api/daily-summary.js": {
+      "maxDuration": 30
+    }
+  }
+}
