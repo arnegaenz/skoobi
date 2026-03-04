@@ -4,6 +4,13 @@ import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import nodemailer from 'nodemailer';
 
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SECRET_KEY
+);
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
 const transporter = nodemailer.createTransport({
   host: 'smtp.zoho.com',
   port: 465,
@@ -13,22 +20,6 @@ const transporter = nodemailer.createTransport({
     pass: process.env.ZOHO_PASSWORD,
   },
 });
-
-async function sendReply(toEmail, toName, subject, body) {
-  await transporter.sendMail({
-    from: `Aurora @ SkoobiLabs <${process.env.ZOHO_EMAIL}>`,
-    to: toName ? `${toName} <${toEmail}>` : toEmail,
-    subject: subject.startsWith('Re:') ? subject : `Re: ${subject}`,
-    text: body,
-  });
-}
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SECRET_KEY
-);
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const imapConfig = {
   host: process.env.ZOHO_IMAP_HOST,
@@ -41,7 +32,6 @@ const imapConfig = {
   logger: false,
 };
 
-// Our folder structure
 const FOLDERS = {
   INBOX: 'INBOX',
   NEEDS_REPLY: 'Needs Reply',
@@ -54,7 +44,6 @@ const FOLDERS = {
   SPAM: 'Spam',
 };
 
-// Map category → folder
 const CATEGORY_TO_FOLDER = {
   bug_report: FOLDERS.BUG_REPORTS,
   feature_request: FOLDERS.FEATURE_REQUESTS,
@@ -66,31 +55,23 @@ const CATEGORY_TO_FOLDER = {
   other: FOLDERS.QUESTIONS,
 };
 
-// Zoho default folders we don't need
 const FOLDERS_TO_DELETE = ['Drafts', 'Sent', 'Trash'];
 
 async function ensureFolders(client) {
   const existing = new Set();
   const mailboxes = await client.list();
-  for (const mailbox of mailboxes) {
-    existing.add(mailbox.path);
-  }
+  for (const mailbox of mailboxes) existing.add(mailbox.path);
 
-  // Delete unwanted default Zoho folders
   for (const folder of FOLDERS_TO_DELETE) {
     if (existing.has(folder)) {
       try {
         await client.mailboxDelete(folder);
         console.log(`  Deleted folder: ${folder}`);
-      } catch {
-        // Some system folders can't be deleted — skip silently
-      }
+      } catch { /* system folders can't be deleted — skip */ }
     }
   }
 
-  // Create our folders if they don't exist
-  const ourFolders = Object.values(FOLDERS).filter(f => f !== FOLDERS.INBOX);
-  for (const folder of ourFolders) {
+  for (const folder of Object.values(FOLDERS).filter(f => f !== FOLDERS.INBOX)) {
     if (!existing.has(folder)) {
       await client.mailboxCreate(folder);
       console.log(`  Created folder: ${folder}`);
@@ -134,9 +115,22 @@ Guidelines:
   });
 
   const text = response.content[0].text.trim();
-  // Strip markdown code blocks if present
   const cleaned = text.replace(/^```json\n?/, '').replace(/\n?```$/, '');
   return JSON.parse(cleaned);
+}
+
+async function sendReply(toEmail, toName, subject, body) {
+  await transporter.sendMail({
+    from: `Aurora @ SkoobiLabs <${process.env.ZOHO_EMAIL}>`,
+    to: toName ? `${toName} <${toEmail}>` : toEmail,
+    subject: subject.startsWith('Re:') ? subject : `Re: ${subject}`,
+    text: body,
+  });
+}
+
+function folderForRecord(record) {
+  if (record.status === 'needs_reply') return FOLDERS.NEEDS_REPLY;
+  return CATEGORY_TO_FOLDER[record.category] || FOLDERS.QUESTIONS;
 }
 
 async function fetchAndProcess() {
@@ -146,7 +140,6 @@ async function fetchAndProcess() {
     await client.connect();
     console.log('Connected to Zoho IMAP\n');
 
-    // Set up folder structure
     await ensureFolders(client);
 
     const lock = await client.getMailboxLock(FOLDERS.INBOX);
@@ -178,26 +171,31 @@ async function fetchAndProcess() {
       }
 
       if (messages.length === 0) {
-        console.log('No new emails found.');
+        console.log('Inbox is empty. Nothing to do.');
         return;
       }
 
-      console.log(`Found ${messages.length} new email(s). Processing...\n`);
+      console.log(`Found ${messages.length} email(s) in inbox. Processing...\n`);
 
       for (const msg of messages) {
-        // Skip duplicates
+        // Check if already processed in Supabase
         const { data: existing } = await supabase
           .from('emails')
-          .select('id')
+          .select('id, status, category')
           .eq('from_email', msg.from_email)
           .eq('subject', msg.subject)
           .limit(1);
 
         if (existing && existing.length > 0) {
-          console.log(`  Skipping duplicate: "${msg.subject}"`);
+          // Already processed — just move it to the right folder (cleanup straggler)
+          const folder = folderForRecord(existing[0]);
+          console.log(`  Cleanup straggler → ${folder}: "${msg.subject}"`);
+          if (!toMove[folder]) toMove[folder] = [];
+          toMove[folder].push(msg.uid);
           continue;
         }
 
+        // Brand new email — triage it
         console.log(`  Triaging: "${msg.subject}" from ${msg.from_email}`);
 
         let triage;
@@ -213,13 +211,12 @@ async function fetchAndProcess() {
           };
         }
 
-        const status = triage.needs_human ? 'needs_reply' : 'handled';
         const folder = triage.needs_human
           ? FOLDERS.NEEDS_REPLY
           : (CATEGORY_TO_FOLDER[triage.category] || FOLDERS.QUESTIONS);
 
         // Auto-send reply if Aurora is handling it
-        let finalStatus = status;
+        let finalStatus = triage.needs_human ? 'needs_reply' : 'handled';
         if (!triage.needs_human && triage.aurora_draft_response && triage.category !== 'spam') {
           try {
             await sendReply(msg.from_email, msg.from_name, msg.subject, triage.aurora_draft_response);
@@ -230,6 +227,7 @@ async function fetchAndProcess() {
           }
         }
 
+        // Save to Supabase
         const { error } = await supabase.from('emails').insert({
           from_email: msg.from_email,
           from_name: msg.from_name,
@@ -243,7 +241,10 @@ async function fetchAndProcess() {
         });
 
         if (error) {
-          console.error(`  Supabase error: ${error.message}`);
+          // Supabase failed — move to Needs Reply so Arne can see it
+          console.error(`  Supabase error: ${error.message} — routing to Needs Reply`);
+          if (!toMove[FOLDERS.NEEDS_REPLY]) toMove[FOLDERS.NEEDS_REPLY] = [];
+          toMove[FOLDERS.NEEDS_REPLY].push(msg.uid);
         } else {
           const flag = triage.needs_human ? '🙋 NEEDS YOU' : '✅ Aurora handled';
           console.log(`  ${flag} [${triage.category}] → ${folder}`);
@@ -252,10 +253,10 @@ async function fetchAndProcess() {
         }
       }
 
-      // Move emails to their folders
+      // Move all emails out of inbox — inbox always ends up empty
       for (const [folder, uids] of Object.entries(toMove)) {
         await client.messageMove(uids, folder, { uid: true });
-        console.log(`  Moved ${uids.length} email(s) → ${folder}`);
+        console.log(`\n  Moved ${uids.length} email(s) → ${folder}`);
       }
 
     } finally {
@@ -263,7 +264,7 @@ async function fetchAndProcess() {
     }
 
     await client.logout();
-    console.log('\nDone!');
+    console.log('\nDone! Inbox is clear.');
 
   } catch (err) {
     console.error('Error:', err.message);
