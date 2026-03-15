@@ -106,6 +106,7 @@ An email came in to ask@skoobilabs.com. Your job is to:
 1. Categorize it
 2. Decide if you can handle it or if Arne (the founder) needs to personally respond
 3. Draft a warm, helpful reply if you can handle it
+4. Tag which app or product the email is about
 
 Email details:
 From: ${email.from_name || ''} <${email.from_email}>
@@ -116,6 +117,7 @@ ${email.body_text?.substring(0, 3000) || '(no body)'}
 Respond ONLY with valid JSON in this exact format:
 {
   "category": "bug_report|feature_request|support|praise|waitlist|question|spam|other",
+  "app_tag": "hearz|connections_helper|skoobi|skoobilabs|unknown",
   "needs_human": true|false,
   "aurora_notes": "Brief triage notes — what is this email about, why does/doesn't it need human reply",
   "aurora_draft_response": "Full draft reply text, or null if spam/needs_human"
@@ -129,6 +131,13 @@ Guidelines:
 - waitlist: someone who signed up or is excited to hear more about Skoobi or SkoobiLabs
 - IMPORTANT: For Formspree notifications (from noreply@formspree.io), extract the REAL person's email from the body (look for "email:" field) and put it in a "reply_to_email" field in your JSON response. This is the actual person to reply to, not noreply@formspree.io.
 - For waitlist signups: ALWAYS send a warm, excited welcome message. Never mention testing, never reference who the person is. Treat every signup as a real new user. Example tone: "Welcome to the Skoobi waitlist! We're building something special for collectors — books, coins, cards, vinyl, and beyond. We'll keep you posted as things come together. Thanks for being an early believer!"
+
+App tagging — pick the most relevant app:
+- hearz: HearZ is an audio article reader app (listen to articles, text-to-speech news, audio news)
+- connections_helper: ConnectionsHelper is an iOS puzzle game helper for NYT Connections
+- skoobi: Skoobi is a collectibles platform for books, coins, cards, vinyl, and other collectibles
+- skoobilabs: SkoobiLabs is the studio itself — general inquiries, partnerships, business
+- unknown: if the email doesn't clearly relate to any specific app or product
 
 If this is a Formspree notification, add this field to your JSON:
   "reply_to_email": "the-actual-persons-email@example.com"`;
@@ -217,6 +226,7 @@ async function processFolder(client, folderName, existingFolders, { supabase, an
       } catch {
         triage = {
           category: 'other',
+          app_tag: 'unknown',
           needs_human: true,
           aurora_notes: 'Triage failed — needs manual review',
           aurora_draft_response: null,
@@ -248,6 +258,7 @@ async function processFolder(client, folderName, existingFolders, { supabase, an
         received_at: msg.received_at,
         status: finalStatus,
         category: triage.category,
+        app_tag: triage.app_tag || 'unknown',
         aurora_notes: triage.aurora_notes,
         aurora_draft_response: triage.aurora_draft_response,
       });

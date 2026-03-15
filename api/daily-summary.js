@@ -46,9 +46,12 @@ export default async function handler(req, res) {
     // Build stats
     const byCategory = {};
     const byStatus = {};
+    const byApp = {};
     for (const e of emails || []) {
       byCategory[e.category] = (byCategory[e.category] || 0) + 1;
       byStatus[e.status] = (byStatus[e.status] || 0) + 1;
+      const app = e.app_tag || 'unknown';
+      byApp[app] = (byApp[app] || 0) + 1;
     }
 
     const total = emails?.length || 0;
@@ -81,12 +84,22 @@ export default async function handler(req, res) {
       }
       lines.push('');
 
+      // Breakdown by app
+      const appEntries = Object.entries(byApp).sort((a, b) => b[1] - a[1]);
+      if (appEntries.length > 0) {
+        lines.push('By app:');
+        for (const [app, count] of appEntries) {
+          lines.push(`  ${app}: ${count}`);
+        }
+        lines.push('');
+      }
+
       // List emails needing reply
       const needsReplyEmails = (emails || []).filter(e => e.status === 'needs_reply');
       if (needsReplyEmails.length > 0) {
         lines.push('NEEDS YOUR REPLY (new):');
         for (const e of needsReplyEmails) {
-          lines.push(`  - "${e.subject}" from ${e.from_name || e.from_email}`);
+          lines.push(`  - "${e.subject}" from ${e.from_name || e.from_email} [${e.app_tag || 'unknown'}]`);
           if (e.aurora_notes) lines.push(`    Aurora's take: ${e.aurora_notes}`);
         }
         lines.push('');
