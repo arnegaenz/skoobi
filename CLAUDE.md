@@ -30,7 +30,7 @@ The collectibles platform. Books first, then everything.
 - Content: `google.com, pub-2092614136459898, DIRECT, f08c47fec0942fa0`
 - Required for AdMob ad serving on HearVerse (App Store ID 6761432386)
 - AdMob verification was failing because the A record for skoobi.com was missing — fixed April 7 2026
-- AdMob status as of April 7 2026: "Requires review" — waiting for crawler to re-check after DNS fix
+- AdMob app-ads.txt verified successfully April 8 2026 — ads now serving
 
 ## Parent
 Built by SkoobiLabs (labs.skoobi.com)
