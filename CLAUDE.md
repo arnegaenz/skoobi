@@ -20,5 +20,17 @@ The collectibles platform. Books first, then everything.
 - Background: #08080F
 - Dark/premium aesthetic
 
+## DNS
+- **skoobi.com** — A record → 76.76.21.21 (Vercel). Was missing, re-added April 2026.
+- **www.skoobi.com** — CNAME → cname.vercel-dns.com. Added as domain in Vercel project April 2026.
+- DNS managed at GoDaddy
+
+## app-ads.txt
+- Served at skoobi.com, www.skoobi.com, and labs.skoobi.com
+- Content: `google.com, pub-2092614136459898, DIRECT, f08c47fec0942fa0`
+- Required for AdMob ad serving on HearVerse (App Store ID 6761432386)
+- AdMob verification was failing because the A record for skoobi.com was missing — fixed April 7 2026
+- AdMob status as of April 7 2026: "Requires review" — waiting for crawler to re-check after DNS fix
+
 ## Parent
 Built by SkoobiLabs (labs.skoobi.com)
